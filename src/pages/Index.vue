@@ -53,33 +53,44 @@ export default {
       fetchData: [],
     }
   },
+  methods: {
+    removeNulls(array) {
+      return array.filter(item => item.name);
+    },
+    sortArrayByIdName(array) {
+      return array.sort(function(a, b) {
+      return (b.name === null) - (a.name === null) || a.listId - b.listId || parseInt(a.name.replace("Item ", "")) - parseInt(b.name.replace("Item ", ""));
+    });
+    },
+    groupDataByListId(array) {
+      return array.reduce((r, { listId: listId, ...object }) => {
+        var temp = r.find(o => o.listId === listId);
+
+        if (!temp) { 
+          r.push(temp = { listId, children: [], expanded: false });
+          
+          }
+          temp.children.push(object);
+        return r;
+      }, []);
+    }
+  },
   async mounted() {
     this.$axios.get(`${this.cors}${this.url}`).then(response => {
     var array = response.data;
     var result;
 
     //remove nulls and spaces
-    array = array.filter(item => item.name);
-
-    //sort by listId and name by removing "Item "
-    array = array.sort(function(a, b) {
-      return (b.name === null) - (a.name === null) || a.listId - b.listId || parseInt(a.name.replace("Item ", "")) - parseInt(b.name.replace("Item ", ""));
-    });
+    array = this.removeNulls(array);
+    
+    //sort by listId, and then name by removing "Item "
+    array = this.sortArrayByIdName(array);
 
     //group data by listId
-    result = array.reduce((r, { listId: listId, ...object }) => {
-      var temp = r.find(o => o.listId === listId);
+    result = this.groupDataByListId(array);
 
-      if (!temp) { 
-        r.push(temp = { listId, children: [], expanded: false });
-        
-        }
-        temp.children.push(object);
-      return r;
-      }, []);
-
-      //assign to variable to be used
-      this.fetchData = result;
+    //assign to variable to be used
+    this.fetchData = result;
     }).catch(error => {
       console.log(error.message)
     });
